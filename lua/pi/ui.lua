@@ -8,6 +8,7 @@ local term_job = nil
 local function open_split()
 	local width = math.floor(vim.o.columns * config.options.split.width)
 	vim.cmd("botright vertical " .. width .. "split")
+	vim.cmd("enew")
 	term_win = vim.api.nvim_get_current_win()
 	vim.wo[term_win].number = false
 	vim.wo[term_win].relativenumber = false
@@ -36,6 +37,7 @@ function M.open(initial_prompt)
 	-- Open split and spawn pi TUI
 	open_split()
 	term_job = vim.fn.termopen(cmd, {
+		cwd = vim.fn.getcwd(),
 		on_exit = function()
 			term_job = nil
 			term_buf = nil

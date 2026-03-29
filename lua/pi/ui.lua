@@ -13,6 +13,19 @@ local function create_buf()
 	vim.bo[buf].buftype = "nofile"
 	vim.bo[buf].bufhidden = "hide"
 	vim.bo[buf].swapfile = false
+
+	-- Chat buffer keymaps
+	vim.keymap.set("n", "i", function()
+		require("pi").ask()
+	end, { buffer = buf, desc = "Ask pi" })
+
+	vim.keymap.set("n", "<CR>", function()
+		require("pi").ask()
+	end, { buffer = buf, desc = "Ask pi" })
+
+	vim.keymap.set("n", "q", function()
+		require("pi").toggle()
+	end, { buffer = buf, desc = "Close pi panel" })
 end
 
 function M.open()

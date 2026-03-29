@@ -1,136 +1,85 @@
 local M = {}
 local config = require("pi.config")
-local buf = nil
-local win = nil
 
--- Create a chat buffer ( once, reused)
-local function create_buf()
-	if buf and vim.api.nvim_buf_is_valid(buf) then
-		return
-	end
-	buf = vim.api.nvim_create_buf(false, true)
-	vim.bo[buf].filetype = "markdown"
-	vim.bo[buf].buftype = "nofile"
-	vim.bo[buf].bufhidden = "hide"
-	vim.bo[buf].swapfile = false
+local term_buf = nil
+local term_win = nil
+local term_job = nil
 
-	-- Chat buffer keymaps
-	vim.keymap.set("n", "i", function()
-		require("pi").ask()
-	end, { buffer = buf, desc = "Ask pi" })
-
-	vim.keymap.set("n", "<CR>", function()
-		require("pi").ask()
-	end, { buffer = buf, desc = "Ask pi" })
-
-	vim.keymap.set("n", "q", function()
-		require("pi").toggle()
-	end, { buffer = buf, desc = "Close pi panel" })
-end
-
-function M.open()
-	create_buf()
-	if win and vim.api.nvim_win_is_valid(win) then
-		return
-	end
+local function open_split()
 	local width = math.floor(vim.o.columns * config.options.split.width)
 	vim.cmd("botright vertical " .. width .. "split")
-	win = vim.api.nvim_get_current_win()
-	vim.api.nvim_win_set_buf(win, buf)
-	vim.wo[win].number = false
-	vim.wo[win].relativenumber = false
-	vim.wo[win].signcolumn = "no"
-	vim.wo[win].wrap = true
-	vim.wo[win].linebreak = true
-	-- Go back to previous window
+	term_win = vim.api.nvim_get_current_win()
+	vim.wo[term_win].number = false
+	vim.wo[term_win].relativenumber = false
+	vim.wo[term_win].signcolumn = "no"
+end
+
+function M.open(initial_prompt)
+	-- If already running, just show the window
+	if term_job and vim.fn.jobwait({ term_job }, 0)[1] == -1 then
+		if not term_win or not vim.api.nvim_win_is_valid(term_win) then
+			open_split()
+			vim.api.nvim_win_set_buf(term_win, term_buf)
+		end
+		return true -- already running
+	end
+
+	-- Build command
+	local cmd = { config.options.pi.bin }
+	for _, arg in ipairs(config.options.pi.extra_args) do
+		table.insert(cmd, arg)
+	end
+	if initial_prompt then
+		table.insert(cmd, initial_prompt)
+	end
+
+	-- Open split and spawn pi TUI
+	open_split()
+	term_job = vim.fn.termopen(cmd, {
+		on_exit = function()
+			term_job = nil
+			term_buf = nil
+		end,
+	})
+	term_buf = vim.api.nvim_get_current_buf()
+
+	-- Go back to code window
 	vim.cmd("wincmd p")
+	return false -- fresh start
+end
+
+function M.send(text)
+	if term_job then
+		vim.fn.chansend(term_job, text .. "\r")
+	end
 end
 
 function M.close()
-	if win and vim.api.nvim_win_is_valid(win) then
-		vim.api.nvim_win_close(win, true)
+	if term_win and vim.api.nvim_win_is_valid(term_win) then
+		vim.api.nvim_win_close(term_win, true)
 	end
-	win = nil
+	term_win = nil
 end
 
 function M.toggle()
-	if win and vim.api.nvim_win_is_valid(win) then
+	if term_win and vim.api.nvim_win_is_valid(term_win) then
 		M.close()
 	else
 		M.open()
 	end
 end
 
-function M.is_open()
-	return win ~= nil and vim.api.nvim_win_is_valid(win)
-end
-
--- Append test to chat buffer
-local function append(text)
-	create_buf()
-	vim.bo[buf].modifiable = true
-	local lines = vim.split(text, "\n")
-	local line_cout = vim.api.nvim_buf_line_count(buf)
-	--If buffer is empty (single empty line), replace; otherwise append
-	local first_line = vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1]
-	if line_cout == 1 and first_line == "" then
-		vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
-	else
-		vim.api.nvim_buf_set_lines(buf, -1, -1, false, lines)
+function M.stop()
+	if term_job then
+		vim.fn.jobstop(term_job)
 	end
-	vim.bo[buf].modifiable = false
-	M.scroll_bottom()
+	M.close()
+	term_job = nil
+	term_buf = nil
 end
 
-function M.append_user(prompt_text)
-	append("## You\n\n" .. prompt_text .. "\n\n---\n")
-end
-
-function M.start_response()
-	append("\n## Pi\n\n")
-end
-
--- Append streaming text delta (no newline prefix — continues current line)
-function M.append_delta(text)
-	if not buf or not vim.api.nvim_buf_is_valid(buf) then
-		return
-	end
-	vim.bo[buf].modifiable = true
-
-	local lines = vim.split(text, "\n", { plain = true })
-	local line_count = vim.api.nvim_buf_line_count(buf)
-	local last_line = vim.api.nvim_buf_get_lines(buf, line_count - 1, line_count, false)[1] or ""
-
-	-- First chunk continues the last line
-	lines[1] = last_line .. lines[1]
-	vim.api.nvim_buf_set_lines(buf, line_count - 1, line_count, false, lines)
-
-	vim.bo[buf].modifiable = false
-	M.scroll_bottom()
-end
-
-function M.append_tool(tool_name, args)
-	local info = "🔧 *" .. tool_name .. "*"
-	if tool_name == "bash" and args and args.command then
-		info = "🔧 *running:* `" .. args.command .. "`"
-	elseif tool_name == "read" and args and args.path then
-		info = "🔧 *reading:* `" .. args.path .. "`"
-	elseif tool_name == "edit" and args and args.path then
-		info = "🔧 *editing:* `" .. args.path .. "`"
-	end
-	append(info)
-end
-
-function M.end_response()
-	append("\n\n---\n")
-end
-
-function M.scroll_bottom()
-	if win and vim.api.nvim_win_is_valid(win) then
-		local line_count = vim.api.nvim_buf_line_count(buf)
-		vim.api.nvim_win_set_cursor(win, { line_count, 0 })
-	end
+function M.is_running()
+	return term_job ~= nil
 end
 
 return M
-

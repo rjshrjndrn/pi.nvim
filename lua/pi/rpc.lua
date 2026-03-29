@@ -26,7 +26,7 @@ function M.start()
 	end
 
 	local cmd = { config.options.pi.bin, "--mode", "rpc", "--no-session" }
-	for _, arg in ipairs(config.option.pi.extra_args) do
+	for _, arg in ipairs(config.options.pi.extra_args) do
 		table.insert(cmd, arg)
 	end
 	stdout_buffer = ""

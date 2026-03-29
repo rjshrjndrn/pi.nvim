@@ -1,8 +1,8 @@
 local M = {}
 
 function M.get_visual_selection()
-	local start_line = vim.fn.line("'<")[2]
-	local end_line = vim.fn.line("'>")[2]
+	local start_line = vim.fn.getpos("'<")[2]
+	local end_line = vim.fn.getpos("'>")[2]
 	local buf = vim.api.nvim_buf_get_name(0)
 	local file = vim.fn.fnamemodify(buf, ":.")
 

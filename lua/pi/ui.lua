@@ -5,10 +5,15 @@ local term_buf = nil
 local term_win = nil
 local term_job = nil
 
-local function open_split()
+local function open_split(existing_buf)
 	local width = math.floor(vim.o.columns * config.options.split.width)
 	vim.cmd("botright vertical " .. width .. "split")
-	vim.cmd("enew")
+	if existing_buf then
+		vim.api.nvim_set_current_buf(existing_buf)
+	else
+		local buf = vim.api.nvim_create_buf(false, true) -- unlisted, scratch
+		vim.api.nvim_set_current_buf(buf)
+	end
 	term_win = vim.api.nvim_get_current_win()
 	vim.wo[term_win].number = false
 	vim.wo[term_win].relativenumber = false
@@ -19,8 +24,7 @@ function M.open(initial_prompt)
 	-- If already running, just show the window
 	if term_job and vim.fn.jobwait({ term_job }, 0)[1] == -1 then
 		if not term_win or not vim.api.nvim_win_is_valid(term_win) then
-			open_split()
-			vim.api.nvim_win_set_buf(term_win, term_buf)
+			open_split(term_buf)
 		end
 		return true -- already running
 	end
@@ -44,6 +48,9 @@ function M.open(initial_prompt)
 		end,
 	})
 	term_buf = vim.api.nvim_get_current_buf()
+	vim.bo[term_buf].buflisted = false
+	vim.api.nvim_buf_set_name(term_buf, "pi")
+	vim.cmd("setlocal bufhidden=hide")
 
 	-- Go back to code window
 	vim.cmd("wincmd p")

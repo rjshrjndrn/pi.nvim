@@ -15,3 +15,9 @@ vim.api.nvim_create_autocmd("VimLeavePre", {
 		require("pi").stop()
 	end,
 })
+
+-- Reload buffers changed on disk by pi
+vim.o.autoread = true
+vim.api.nvim_create_autocmd({ "BufEnter", "FocusGained", "CursorHold" }, {
+	command = "silent! checktime",
+})

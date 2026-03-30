@@ -4,6 +4,7 @@ local config = require("pi.config")
 local term_buf = nil
 local term_win = nil
 local term_job = nil
+local augroup = vim.api.nvim_create_augroup("PiTerminal", { clear = true })
 
 local function open_split(existing_buf)
 	local width = math.floor(vim.o.columns * config.options.split.width)
@@ -51,6 +52,17 @@ function M.open(initial_prompt)
 	vim.bo[term_buf].buflisted = false
 	vim.api.nvim_buf_set_name(term_buf, "pi")
 	vim.cmd("setlocal bufhidden=hide")
+
+	-- Auto-enter insert mode when focusing the terminal buffer
+	vim.api.nvim_create_autocmd("BufEnter", {
+		group = augroup,
+		buffer = term_buf,
+		callback = function()
+			if vim.bo.buftype == "terminal" then
+				vim.cmd("startinsert")
+			end
+		end,
+	})
 
 	-- Go back to code window
 	vim.cmd("wincmd p")

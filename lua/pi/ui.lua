@@ -87,6 +87,11 @@ function M.toggle()
 		M.close()
 	else
 		M.open()
+		-- Focus the pi window (open() jumps back to code window)
+		if term_win and vim.api.nvim_win_is_valid(term_win) then
+			vim.api.nvim_set_current_win(term_win)
+			vim.cmd("startinsert")
+		end
 	end
 end
 

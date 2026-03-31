@@ -8,6 +8,7 @@ M.defaults = {
 	keymaps = {
 		ask = "<leader>ap",
 		toggle = "<leader>pp",
+		yank = "gy",
 	},
 	pi = {
 		bin = "pi",

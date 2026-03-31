@@ -6,6 +6,41 @@ local term_win = nil
 local term_job = nil
 local augroup = vim.api.nvim_create_augroup("PiTerminal", { clear = true })
 
+--- Join continuation lines caused by terminal hard-wrapping.
+--- Lines whose display width equals the terminal width are wraps, not real newlines.
+local function join_wrapped_lines(lines, term_width)
+	local result = {}
+	local current = ""
+	for _, line in ipairs(lines) do
+		current = current .. line
+		if vim.fn.strdisplaywidth(line) < term_width then
+			table.insert(result, current)
+			current = ""
+		end
+	end
+	if current ~= "" then
+		table.insert(result, current)
+	end
+	return result
+end
+
+local function setup_term_keymaps(buf)
+	vim.keymap.set("x", config.options.keymaps.yank, function()
+		-- Yank the visual selection normally
+		vim.cmd('normal! y')
+
+		local reg = vim.fn.getreg('"')
+		local lines = vim.split(reg, "\n", { plain = true })
+		local term_width = vim.api.nvim_win_get_width(0)
+
+		local joined = join_wrapped_lines(lines, term_width)
+		local text = table.concat(joined, "\n")
+
+		vim.fn.setreg('"', text)
+		vim.fn.setreg("+", text)
+	end, { buffer = buf, desc = "Smart yank (unwrap terminal lines)" })
+end
+
 local function open_split(existing_buf)
 	local width = math.floor(vim.o.columns * config.options.split.width)
 	vim.cmd("botright vertical " .. width .. "split")
@@ -52,6 +87,9 @@ function M.open(initial_prompt)
 	vim.bo[term_buf].buflisted = false
 	vim.api.nvim_buf_set_name(term_buf, "pi")
 	vim.cmd("setlocal bufhidden=hide")
+
+	-- Smart yank keymap for copying without terminal wraps
+	setup_term_keymaps(term_buf)
 
 	-- Auto-enter insert mode when focusing the terminal buffer
 	vim.api.nvim_create_autocmd("BufEnter", {

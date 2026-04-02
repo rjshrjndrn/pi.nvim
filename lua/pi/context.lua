@@ -20,12 +20,8 @@ function M.get_buffer_info()
 	}
 end
 
-function M.format_prompt(ctx, question)
-	if ctx and ctx.start_line then
-		return string.format("`%s` lines %d-%d. %s", ctx.file, ctx.start_line, ctx.end_line, question)
-	else
-		return string.format("I'm working in `%s`. %s", ctx.file, question)
-	end
+function M.format_prompt(backend, ctx, question)
+	return backend.format_prompt(ctx, question)
 end
 
 return M

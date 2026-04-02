@@ -56,7 +56,7 @@ local function open_split(existing_buf)
 	vim.wo[term_win].signcolumn = "no"
 end
 
-function M.open(initial_prompt)
+function M.open(initial_prompt, backend)
 	-- If already running, just show the window
 	if term_job and vim.fn.jobwait({ term_job }, 0)[1] == -1 then
 		if not term_win or not vim.api.nvim_win_is_valid(term_win) then
@@ -65,14 +65,9 @@ function M.open(initial_prompt)
 		return true -- already running
 	end
 
-	-- Build command
-	local cmd = { config.options.pi.bin }
-	for _, arg in ipairs(config.options.pi.extra_args) do
-		table.insert(cmd, arg)
-	end
-	if initial_prompt then
-		table.insert(cmd, initial_prompt)
-	end
+	-- Build command via backend
+	backend = backend or require("pi.config").get_backend()
+	local cmd = backend.build_cmd(backend.bin, backend.extra_args, initial_prompt)
 
 	-- Open split and spawn pi TUI
 	open_split()

@@ -12,7 +12,7 @@ Neovim plugin that embeds [pi](https://github.com/mariozechner/pi-coding-agent) 
 ## Requirements
 
 - Neovim ≥ 0.9
-- [pi](https://github.com/mariozechner/pi-coding-agent) installed and available in `$PATH`
+- [pi](https://github.com/mariozechner/pi-coding-agent) or [opencode](https://github.com/opencode-ai/opencode) installed and available in `$PATH`
 
 ## Installation
 
@@ -42,6 +42,8 @@ Neovim plugin that embeds [pi](https://github.com/mariozechner/pi-coding-agent) 
 
 ```lua
 require("pi").setup({
+  backend = "pi",        -- "pi" (default) | "opencode" | custom table
+  backend_opts = {},     -- override bin or extra_args for the chosen preset
   split = {
     position = "right",  -- panel position
     width = 0.35,        -- 35% of screen width
@@ -50,12 +52,50 @@ require("pi").setup({
     ask = "<leader>ap",  -- ask pi (normal + visual)
     toggle = "<leader>pp", -- toggle panel visibility
   },
-  pi = {
-    bin = "pi",          -- path to pi binary
-    extra_args = {},     -- extra CLI args, e.g. {"--model", "sonnet"}
+})
+```
+
+### Backends
+
+Switch the coding agent that runs inside the panel:
+
+```lua
+-- Use opencode instead of pi
+require("pi").setup({
+  backend = "opencode",
+})
+
+-- Override binary path or add extra CLI flags
+require("pi").setup({
+  backend = "opencode",
+  backend_opts = {
+    bin = "/usr/local/bin/opencode",
+    extra_args = { "--model", "anthropic/claude-sonnet" },
+  },
+})
+
+-- Fully custom backend
+require("pi").setup({
+  backend = {
+    bin = "my-agent",
+    extra_args = {},
+    build_cmd = function(bin, extra_args, prompt)
+      local cmd = { bin }
+      for _, a in ipairs(extra_args) do cmd[#cmd + 1] = a end
+      if prompt then cmd[#cmd + 1] = prompt end
+      return cmd
+    end,
+    format_prompt = function(ctx, question)
+      return string.format("Refer %s. %s", ctx.file, question)
+    end,
   },
 })
 ```
+
+| Preset | How prompt is passed | File reference style |
+|--------|---------------------|---------------------|
+| `pi` | Positional arg | `` Refer `file.lua` `` |
+| `opencode` | `--prompt` flag | `Refer @file.lua` |
 
 ## Usage
 
@@ -92,7 +132,7 @@ Press `<leader>pp` to show/hide the pi panel. Pi keeps running in the background
 
 ## How it works
 
-Pi's TUI runs in a Neovim terminal buffer in a right split. When you ask about code, the plugin captures the filename and line numbers, formats a prompt, and sends it to pi. Pi uses its own tools (`read`, `bash`, `edit`) to access your files directly — no code extraction needed.
+The chosen backend's TUI runs in a Neovim terminal buffer in a right split. When you ask about code, the plugin captures the filename and line numbers, formats a prompt using the backend's style, and sends it to the agent. The agent uses its own tools to access your files directly — no code extraction needed.
 
 ## License
 

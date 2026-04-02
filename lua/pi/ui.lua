@@ -73,6 +73,19 @@ function M.open(initial_prompt, backend)
 	open_split()
 	term_job = vim.fn.termopen(cmd, {
 		cwd = vim.fn.getcwd(),
+		env = {
+			-- OpenCode checks process.env.TMUX / process.env.STY to decide whether
+			-- to wrap its OSC 52 clipboard write in a DCS tmux passthrough sequence
+			-- (\x1bPtmux;\x1b...\x1b\\).  When those vars are inherited from the
+			-- outer tmux/screen session, Neovim's libvterm mishandles the DCS frame
+			-- and the base64 payload ends up routed back to OpenCode's stdin, where
+			-- Bubble Tea types it into the input area.
+			-- Forcing both to "" makes the JS `TMUX || STY` check falsy, so OpenCode
+			-- emits a plain OSC 52 sequence instead, which libvterm handles cleanly.
+			-- OpenCode's native clipboard path (wl-copy / xclip / xsel) is unaffected.
+			TMUX = "",
+			STY = "",
+		},
 		on_exit = function()
 			term_job = nil
 			term_buf = nil

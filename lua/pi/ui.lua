@@ -117,7 +117,14 @@ end
 
 function M.send(text)
 	if term_job then
-		vim.fn.chansend(term_job, text .. "\r")
+		-- Wrap in bracketed-paste markers so OpenCode's Bubble Tea input does not
+		-- treat individual characters as keystrokes.  Without this, the '@' in the
+		-- formatted prompt (e.g. "Refer @file lines N-M.") triggers OpenCode's
+		-- mention-autocomplete, which replaces the typed file path with whatever
+		-- agent name is highlighted in the dropdown (e.g. "@coder-v2").
+		-- Bubble Tea honours \x1b[200~ / \x1b[201~ and inserts the whole block as
+		-- literal text, bypassing all key-event callbacks.
+		vim.fn.chansend(term_job, "\x1b[200~" .. text .. "\x1b[201~\r")
 	end
 end
 

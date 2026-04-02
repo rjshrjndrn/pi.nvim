@@ -6,6 +6,7 @@ local context = require("pi.context")
 function M.ask(opts)
 	opts = opts or {}
 	local ctx
+	local backend = config.get_backend()
 
 	if opts.visual then
 		ctx = context.get_visual_selection()
@@ -17,10 +18,10 @@ function M.ask(opts)
 		if not question or question == "" then
 			return
 		end
-		local prompt = context.format_prompt(ctx, question)
+		local prompt = context.format_prompt(backend, ctx, question)
 
-		local already_running = ui.open(prompt)
-		-- If pi was already running, send as follow-up
+		local already_running = ui.open(prompt, backend)
+		-- If backend was already running, send as follow-up
 		if already_running then
 			ui.send(prompt)
 		end

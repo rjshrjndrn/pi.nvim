@@ -9,11 +9,24 @@ M.defaults = {
 		width = 0.35,
 	},
 	keymaps = {
+		prefix = "<leader>p",
 		ask = "<leader>ap",
 		toggle = "<leader>pp",
 		yank = "gy",
 	},
-	quick_actions = {},
+	quick_actions = {
+		{
+			keymap = "<leader>pc",
+			desc = "Generate commit message for staged changes",
+			prompt = [[
+      Check the staged changes and create a git commit message with a conventional commit message.
+      Message should be for why the change, not what changed.
+      ]],
+			cmd = function(prompt)
+				return { "opencode", "run", "-m", "anthropic/claude-haiku-4-5", prompt }
+			end,
+		},
+	},
 }
 
 M.options = {}

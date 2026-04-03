@@ -104,6 +104,11 @@ function M.setup(opts)
 			M.quick_action(action)
 		end, { desc = action.desc or "Pi quick action" })
 	end
+
+	local ok, wk = pcall(require, "which-key")
+	if ok and config.options.keymaps.prefix then
+		wk.add({ { config.options.keymaps.prefix, group = "pi" } })
+	end
 end
 
 return M

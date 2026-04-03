@@ -31,17 +31,42 @@ function M.ask(opts)
 end
 
 function M.quick_action(action)
+	local prompt = type(action.prompt) == "function" and action.prompt() or action.prompt
+	if not prompt or prompt == "" then
+		vim.notify("pi: nothing to send (empty prompt)", vim.log.levels.WARN)
+		return
+	end
+
+	if action.cmd then
+		-- Oneshot: user-defined command, plugin runs it and shows output in a popup
+		local cmd = type(action.cmd) == "function" and action.cmd(prompt) or action.cmd
+		local lines = {}
+		vim.fn.jobstart(cmd, {
+			cwd = vim.fn.getcwd(),
+			stdout_buffered = true,
+			on_stdout = function(_, data)
+				if data then
+					vim.list_extend(lines, data)
+				end
+			end,
+			on_exit = function(_, code)
+				if code ~= 0 then
+					vim.notify("pi: command exited with code " .. code, vim.log.levels.WARN)
+				end
+				vim.schedule(function()
+					ui.popup(lines)
+				end)
+			end,
+		})
+		return
+	end
+
+	-- TUI flow via backend
 	local backend
 	if action.backend then
 		backend = backends.resolve(action.backend, action.backend_opts or {})
 	else
 		backend = config.get_backend()
-	end
-
-	local prompt = type(action.prompt) == "function" and action.prompt() or action.prompt
-	if not prompt or prompt == "" then
-		vim.notify("pi: nothing to send (empty prompt)", vim.log.levels.WARN)
-		return
 	end
 
 	local already_running = ui.open(prompt, backend)

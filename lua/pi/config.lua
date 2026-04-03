@@ -13,20 +13,7 @@ M.defaults = {
 		toggle = "<leader>pp",
 		yank = "gy",
 	},
-	quick_actions = {
-		{
-			keymap = "<leader>pc",
-			desc = "Generate commit message for staged changes",
-			backend = "opencode",
-			backend_opts = {
-				extra_args = { "-m", "anthropic/claude-haiku-4-5" },
-			},
-			prompt = [[
-      Check the staged changes and create a git commit message with a conventional commit message.
-      Message should be for why the change, not what changed.
-      ]],
-		},
-	},
+	quick_actions = {},
 }
 
 M.options = {}

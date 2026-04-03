@@ -166,4 +166,55 @@ function M.is_running()
 	return term_job ~= nil
 end
 
+function M.popup(lines)
+	-- Strip trailing empty lines
+	while #lines > 0 and lines[#lines] == "" do
+		table.remove(lines)
+	end
+
+	if #lines == 0 then
+		vim.notify("pi: no output received", vim.log.levels.WARN)
+		return
+	end
+
+	local buf = vim.api.nvim_create_buf(false, true)
+	vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+	vim.bo[buf].modifiable = false
+	vim.bo[buf].bufhidden = "wipe"
+
+	local width = math.floor(vim.o.columns * 0.6)
+	local height = math.min(#lines, math.floor(vim.o.lines * 0.6))
+	local row = math.floor((vim.o.lines - height) / 2)
+	local col = math.floor((vim.o.columns - width) / 2)
+
+	local win = vim.api.nvim_open_win(buf, true, {
+		relative = "editor",
+		width = width,
+		height = height,
+		row = row,
+		col = col,
+		style = "minimal",
+		border = "rounded",
+		title = " pi ",
+		title_pos = "center",
+	})
+
+	local function close()
+		if vim.api.nvim_win_is_valid(win) then
+			vim.api.nvim_win_close(win, true)
+		end
+	end
+
+	vim.keymap.set("n", "<CR>", function()
+		local content = table.concat(lines, "\n")
+		vim.fn.setreg("+", content)
+		vim.fn.setreg('"', content)
+		vim.notify("pi: yanked to clipboard", vim.log.levels.INFO)
+		close()
+	end, { buffer = buf, desc = "Yank output and close" })
+
+	vim.keymap.set("n", "q", close, { buffer = buf, desc = "Close popup" })
+	vim.keymap.set("n", "<Esc>", close, { buffer = buf, desc = "Close popup" })
+end
+
 return M

@@ -124,7 +124,12 @@ function M.send(text)
 		-- agent name is highlighted in the dropdown (e.g. "@coder-v2").
 		-- Bubble Tea honours \x1b[200~ / \x1b[201~ and inserts the whole block as
 		-- literal text, bypassing all key-event callbacks.
-		vim.fn.chansend(term_job, "\x1b[200~" .. text .. "\x1b[201~\r")
+		vim.fn.chansend(term_job, "\x1b[200~" .. text .. "\x1b[201~")
+		vim.defer_fn(function()
+			if term_job then
+				vim.fn.chansend(term_job, "\r")
+			end
+		end, 10)
 	end
 end
 

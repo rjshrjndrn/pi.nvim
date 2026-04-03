@@ -40,21 +40,34 @@ function M.quick_action(action)
 	if action.cmd then
 		-- Oneshot: user-defined command, plugin runs it and shows output in a popup
 		local cmd = type(action.cmd) == "function" and action.cmd(prompt) or action.cmd
-		local lines = {}
+		local stdout_lines = {}
+		local stderr_lines = {}
+
+		vim.notify("pi: running...", vim.log.levels.INFO)
+
 		vim.fn.jobstart(cmd, {
 			cwd = vim.fn.getcwd(),
 			stdout_buffered = true,
+			stderr_buffered = true,
 			on_stdout = function(_, data)
 				if data then
-					vim.list_extend(lines, data)
+					vim.list_extend(stdout_lines, data)
+				end
+			end,
+			on_stderr = function(_, data)
+				if data then
+					vim.list_extend(stderr_lines, data)
 				end
 			end,
 			on_exit = function(_, code)
-				if code ~= 0 then
-					vim.notify("pi: command exited with code " .. code, vim.log.levels.WARN)
-				end
 				vim.schedule(function()
-					ui.popup(lines)
+					if code ~= 0 then
+						local err = vim.tbl_filter(function(l) return l ~= "" end, stderr_lines)
+						local msg = #err > 0 and table.concat(err, "\n") or ("exited with code " .. code)
+						vim.notify("pi: " .. msg, vim.log.levels.ERROR)
+						return
+					end
+					ui.popup(stdout_lines)
 				end)
 			end,
 		})
@@ -105,10 +118,12 @@ function M.setup(opts)
 		end, { desc = action.desc or "Pi quick action" })
 	end
 
-	local ok, wk = pcall(require, "which-key")
-	if ok and config.options.keymaps.prefix then
-		wk.add({ { config.options.keymaps.prefix, group = "pi" } })
-	end
+	vim.schedule(function()
+		local ok, wk = pcall(require, "which-key")
+		if ok and config.options.keymaps.prefix then
+			wk.add({ { config.options.keymaps.prefix, group = "pi" } })
+		end
+	end)
 end
 
 return M

@@ -12,6 +12,7 @@ M.defaults = {
 		prefix = "<leader>p",
 		ask = "<leader>ap",
 		toggle = "<leader>pp",
+		expand = "<leader>pe",
 		yank = "gy",
 	},
 	quick_actions = {

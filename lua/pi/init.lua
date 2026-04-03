@@ -95,6 +95,10 @@ function M.setup(opts)
 		M.toggle()
 	end, { desc = "Toggle pi panel" })
 
+	vim.keymap.set("n", config.options.keymaps.expand, function()
+		ui.toggle_maximize()
+	end, { desc = "Expand/restore pi panel" })
+
 	for _, action in ipairs(config.options.quick_actions or {}) do
 		vim.keymap.set("n", action.keymap, function()
 			M.quick_action(action)

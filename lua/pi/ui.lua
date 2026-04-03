@@ -4,6 +4,7 @@ local config = require("pi.config")
 local term_buf = nil
 local term_win = nil
 local term_job = nil
+local is_maximized = false
 local augroup = vim.api.nvim_create_augroup("PiTerminal", { clear = true })
 
 --- Join continuation lines caused by terminal hard-wrapping.
@@ -138,6 +139,7 @@ function M.close()
 		vim.api.nvim_win_close(term_win, true)
 	end
 	term_win = nil
+	is_maximized = false
 end
 
 function M.toggle()
@@ -151,6 +153,20 @@ function M.toggle()
 			vim.cmd("startinsert")
 		end
 	end
+end
+
+function M.toggle_maximize()
+	if not term_win or not vim.api.nvim_win_is_valid(term_win) then return end
+	if is_maximized then
+		local width = math.floor(vim.o.columns * require("pi.config").options.split.width)
+		vim.api.nvim_win_set_width(term_win, width)
+		is_maximized = false
+	else
+		vim.api.nvim_win_set_width(term_win, vim.o.columns - 2)
+		is_maximized = true
+	end
+	vim.api.nvim_set_current_win(term_win)
+	vim.cmd("startinsert")
 end
 
 function M.stop()

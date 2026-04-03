@@ -21,6 +21,8 @@ M.defaults = {
 			prompt = [[
       Check the staged changes and create a git commit message with a conventional commit message.
       Message should be for why the change, not what changed.
+      Message should be plain text. Only output the commit message
+      keep it simple to understand.
       ]],
 			cmd = function(prompt)
 				return { "opencode", "run", "-m", "anthropic/claude-haiku-4-5", prompt }

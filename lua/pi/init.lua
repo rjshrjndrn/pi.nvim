@@ -40,37 +40,20 @@ function M.quick_action(action)
 	if action.cmd then
 		-- Oneshot: user-defined command, plugin runs it and shows output in a popup
 		local cmd = type(action.cmd) == "function" and action.cmd(prompt) or action.cmd
-		local stdout_lines = {}
-		local stderr_lines = {}
 
 		vim.notify("pi: running...", vim.log.levels.INFO)
 
-		vim.fn.jobstart(cmd, {
-			cwd = vim.fn.getcwd(),
-			stdout_buffered = true,
-			stderr_buffered = true,
-			on_stdout = function(_, data)
-				if data then
-					vim.list_extend(stdout_lines, data)
+		vim.system(cmd, { cwd = vim.fn.getcwd(), text = true }, function(result)
+			vim.schedule(function()
+				if result.code ~= 0 then
+					local msg = (result.stderr ~= "" and result.stderr) or ("exited with code " .. result.code)
+					vim.notify("pi: " .. msg, vim.log.levels.ERROR)
+					return
 				end
-			end,
-			on_stderr = function(_, data)
-				if data then
-					vim.list_extend(stderr_lines, data)
-				end
-			end,
-			on_exit = function(_, code)
-				vim.schedule(function()
-					if code ~= 0 then
-						local err = vim.tbl_filter(function(l) return l ~= "" end, stderr_lines)
-						local msg = #err > 0 and table.concat(err, "\n") or ("exited with code " .. code)
-						vim.notify("pi: " .. msg, vim.log.levels.ERROR)
-						return
-					end
-					ui.popup(stdout_lines)
-				end)
-			end,
-		})
+				local lines = vim.split(result.stdout or "", "\n", { plain = true })
+				ui.popup(lines)
+			end)
+		end)
 		return
 	end
 

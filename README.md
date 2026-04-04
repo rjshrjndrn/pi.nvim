@@ -67,6 +67,13 @@ require("pi").setup({
 
 -- Override binary path or add extra CLI flags
 require("pi").setup({
+  backend = "pi",
+  backend_opts = {
+    bin = "/usr/local/bin/pi",  -- if pi is not on $PATH
+  },
+})
+
+require("pi").setup({
   backend = "opencode",
   backend_opts = {
     bin = "/usr/local/bin/opencode",
@@ -74,7 +81,11 @@ require("pi").setup({
   },
 })
 
--- Fully custom backend
+-- Register a named preset (only bin is required; build_cmd/format_prompt inherit from pi)
+require("pi.backends").register("myagent", { bin = "myagent" })
+require("pi").setup({ backend = "myagent" })
+
+-- Fully custom backend (inline table, no registration needed)
 require("pi").setup({
   backend = {
     bin = "my-agent",

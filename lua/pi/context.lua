@@ -4,7 +4,7 @@ function M.get_visual_selection()
 	local start_line = vim.fn.getpos("'<")[2]
 	local end_line = vim.fn.getpos("'>")[2]
 	local buf = vim.api.nvim_buf_get_name(0)
-	local file = vim.fn.fnamemodify(buf, ":.")
+	local file = vim.fn.fnamemodify(buf, ":p")
 
 	return {
 		file = file,
@@ -16,7 +16,7 @@ end
 function M.get_buffer_info()
 	local bufname = vim.api.nvim_buf_get_name(0)
 	return {
-		file = vim.fn.fnamemodify(bufname, ":."),
+		file = vim.fn.fnamemodify(bufname, ":p"),
 	}
 end
 

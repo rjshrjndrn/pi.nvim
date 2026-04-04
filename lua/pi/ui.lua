@@ -57,7 +57,7 @@ local function open_split(existing_buf)
 	vim.wo[term_win].signcolumn = "no"
 end
 
-function M.open(initial_prompt, backend)
+function M.open(initial_prompt, backend, cwd)
 	-- If already running, just show the window
 	if term_job and vim.fn.jobwait({ term_job }, 0)[1] == -1 then
 		if not term_win or not vim.api.nvim_win_is_valid(term_win) then
@@ -73,7 +73,7 @@ function M.open(initial_prompt, backend)
 	-- Open split and spawn pi TUI
 	open_split()
 	term_job = vim.fn.termopen(cmd, {
-		cwd = vim.fn.getcwd(),
+		cwd = cwd or vim.fn.getcwd(),
 		env = {
 			-- OpenCode checks process.env.TMUX / process.env.STY to decide whether
 			-- to wrap its OSC 52 clipboard write in a DCS tmux passthrough sequence

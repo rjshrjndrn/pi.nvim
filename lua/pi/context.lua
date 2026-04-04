@@ -20,6 +20,19 @@ function M.get_buffer_info()
 	}
 end
 
+--- Resolve the working directory for spawning the backend process.
+--- Walks up from the file's directory to find a git root; falls back to :h.
+---@param file string Absolute path to the file.
+---@return string
+function M.resolve_cwd(file)
+	local dir = vim.fn.fnamemodify(file, ":h")
+	local result = vim.fn.system("git -C " .. vim.fn.shellescape(dir) .. " rev-parse --show-toplevel 2>/dev/null")
+	if vim.v.shell_error == 0 then
+		return vim.trim(result)
+	end
+	return dir
+end
+
 function M.format_prompt(backend, ctx, question)
 	return backend.format_prompt(ctx, question)
 end

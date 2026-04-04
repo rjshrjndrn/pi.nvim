@@ -20,8 +20,9 @@ function M.ask(opts)
 			return
 		end
 		local prompt = context.format_prompt(backend, ctx, question)
+		local cwd = context.resolve_cwd(ctx.file)
 
-		local already_running = ui.open(prompt, backend)
+		local already_running = ui.open(prompt, backend, cwd)
 		-- If backend was already running, send as follow-up
 		if already_running then
 			ui.send(prompt)
@@ -65,7 +66,8 @@ function M.quick_action(action)
 		backend = config.get_backend()
 	end
 
-	local already_running = ui.open(prompt, backend)
+	local cwd = context.resolve_cwd(vim.api.nvim_buf_get_name(0))
+	local already_running = ui.open(prompt, backend, cwd)
 	if already_running then
 		ui.send(prompt)
 	end

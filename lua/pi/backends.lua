@@ -45,6 +45,16 @@ presets.opencode = {
 	end,
 }
 
+--- Register a custom backend preset. Only `bin` is required; all other
+--- fields fall back to the built-in `pi` preset.
+---@param name string
+---@param backend table Must contain `bin`; `extra_args`, `build_cmd`, `format_prompt` are optional.
+function M.register(name, backend)
+	assert(type(name) == "string" and name ~= "", "pi.nvim: backend name must be a non-empty string")
+	assert(type(backend) == "table" and type(backend.bin) == "string" and backend.bin ~= "", "pi.nvim: backend must be a table with a non-empty 'bin'")
+	presets[name] = vim.tbl_deep_extend("keep", backend, presets.pi)
+end
+
 --- Resolve a backend from a name or custom table, with optional overrides.
 ---@param name_or_table string|table
 ---@param opts table|nil
@@ -58,7 +68,13 @@ function M.resolve(name_or_table, opts)
 	elseif type(name_or_table) == "string" then
 		backend = presets[name_or_table]
 		if not backend then
-			error(string.format("pi.nvim: unknown backend '%s'. Available: %s", name_or_table, table.concat(vim.tbl_keys(presets), ", ")))
+			error(
+				string.format(
+					"pi.nvim: unknown backend '%s'. Available: %s",
+					name_or_table,
+					table.concat(vim.tbl_keys(presets), ", ")
+				)
+			)
 		end
 		backend = vim.tbl_deep_extend("force", {}, backend)
 	else

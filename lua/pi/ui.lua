@@ -42,9 +42,12 @@ local function setup_term_keymaps(buf)
 	end, { buffer = buf, desc = "Smart yank (unwrap terminal lines)" })
 end
 
-local function open_split(existing_buf)
+local function open_split(existing_buf, cwd)
 	local width = math.floor(vim.o.columns * config.options.split.width)
 	vim.cmd("botright vertical " .. width .. "split")
+	if cwd then
+		vim.cmd("lcd " .. vim.fn.fnameescape(cwd))
+	end
 	if existing_buf then
 		vim.api.nvim_set_current_buf(existing_buf)
 	else
@@ -61,7 +64,7 @@ function M.open(initial_prompt, backend, cwd)
 	-- If already running, just show the window
 	if term_job and vim.fn.jobwait({ term_job }, 0)[1] == -1 then
 		if not term_win or not vim.api.nvim_win_is_valid(term_win) then
-			open_split(term_buf)
+			open_split(term_buf, cwd)
 		end
 		return true -- already running
 	end
@@ -71,7 +74,7 @@ function M.open(initial_prompt, backend, cwd)
 	local cmd = backend.build_cmd(backend.bin, backend.extra_args, initial_prompt)
 
 	-- Open split and spawn pi TUI
-	open_split()
+	open_split(nil, cwd)
 	term_job = vim.fn.termopen(cmd, {
 		cwd = cwd or vim.fn.getcwd(),
 		env = {

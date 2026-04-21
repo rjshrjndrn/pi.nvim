@@ -39,6 +39,7 @@ function M.ask(opts)
 			ui.send(prompt)
 		end, config.options.startup_delay)
 	end
+	ui.focus()
 end
 
 function M.quick_action(action)

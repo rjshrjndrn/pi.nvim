@@ -141,6 +141,13 @@ function M.send(text)
 	end
 end
 
+function M.focus()
+	if term_win and vim.api.nvim_win_is_valid(term_win) then
+		vim.api.nvim_set_current_win(term_win)
+		vim.cmd("startinsert")
+	end
+end
+
 function M.close()
 	if term_win and vim.api.nvim_win_is_valid(term_win) then
 		vim.api.nvim_win_close(term_win, true)
@@ -155,11 +162,7 @@ function M.toggle()
 	else
 		local cwd = require("pi.context").resolve_cwd(vim.api.nvim_buf_get_name(0))
 		M.open(nil, nil, cwd)
-		-- Focus the pi window (open() jumps back to code window)
-		if term_win and vim.api.nvim_win_is_valid(term_win) then
-			vim.api.nvim_set_current_win(term_win)
-			vim.cmd("startinsert")
-		end
+		M.focus()
 	end
 end
 

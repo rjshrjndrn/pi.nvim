@@ -149,7 +149,8 @@ function M.toggle()
 	if term_win and vim.api.nvim_win_is_valid(term_win) then
 		M.close()
 	else
-		M.open()
+		local cwd = require("pi.context").resolve_cwd(vim.api.nvim_buf_get_name(0))
+		M.open(nil, nil, cwd)
 		-- Focus the pi window (open() jumps back to code window)
 		if term_win and vim.api.nvim_win_is_valid(term_win) then
 			vim.api.nvim_set_current_win(term_win)

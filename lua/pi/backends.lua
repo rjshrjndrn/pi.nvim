@@ -17,9 +17,9 @@ presets.pi = {
 	end,
 	format_prompt = function(ctx, question)
 		if ctx.start_line then
-			return string.format("Refer `%s` lines %d-%d. %s", ctx.file, ctx.start_line, ctx.end_line, question)
+			return string.format("%s Refer `%s` lines %d-%d.", question, ctx.file, ctx.start_line, ctx.end_line)
 		end
-		return string.format("Refer `%s`. %s", ctx.file, question)
+		return string.format("%s Refer `%s`.", question, ctx.file)
 	end,
 }
 
@@ -39,9 +39,9 @@ presets.opencode = {
 	end,
 	format_prompt = function(ctx, question)
 		if ctx.start_line then
-			return string.format("Refer @%s lines %d-%d. %s", ctx.file, ctx.start_line, ctx.end_line, question)
+			return string.format("%s Refer @%s lines %d-%d.", question, ctx.file, ctx.start_line, ctx.end_line)
 		end
-		return string.format("Refer @%s. %s", ctx.file, question)
+		return string.format("%s Refer @%s.", question, ctx.file)
 	end,
 }
 
@@ -51,7 +51,10 @@ presets.opencode = {
 ---@param backend table Must contain `bin`; `extra_args`, `build_cmd`, `format_prompt` are optional.
 function M.register(name, backend)
 	assert(type(name) == "string" and name ~= "", "pi.nvim: backend name must be a non-empty string")
-	assert(type(backend) == "table" and type(backend.bin) == "string" and backend.bin ~= "", "pi.nvim: backend must be a table with a non-empty 'bin'")
+	assert(
+		type(backend) == "table" and type(backend.bin) == "string" and backend.bin ~= "",
+		"pi.nvim: backend must be a table with a non-empty 'bin'"
+	)
 	presets[name] = vim.tbl_deep_extend("keep", backend, presets.pi)
 end
 

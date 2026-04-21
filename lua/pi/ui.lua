@@ -132,12 +132,12 @@ function M.send(text)
 		-- agent name is highlighted in the dropdown (e.g. "@coder-v2").
 		-- Bubble Tea honours \x1b[200~ / \x1b[201~ and inserts the whole block as
 		-- literal text, bypassing all key-event callbacks.
+		--
+		-- We intentionally do NOT send \r (Enter) afterwards.  The prompt is
+		-- placed in the TUI's input field so the user can review/edit it and
+		-- submit manually.  This also ensures the text is recorded in the
+		-- TUI's command history.
 		vim.fn.chansend(term_job, "\x1b[200~" .. text .. "\x1b[201~")
-		vim.defer_fn(function()
-			if term_job then
-				vim.fn.chansend(term_job, "\r")
-			end
-		end, 10)
 	end
 end
 

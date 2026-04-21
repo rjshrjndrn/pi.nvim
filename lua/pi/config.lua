@@ -8,6 +8,10 @@ M.defaults = {
 		position = "right",
 		width = 0.35,
 	},
+	-- Delay (ms) after spawning the TUI before sending the initial prompt
+	-- via the input field.  Increase if the TUI hasn't finished initializing
+	-- before the prompt arrives.
+	startup_delay = 1000,
 	keymaps = {
 		prefix = "<leader>p",
 		ask = "<leader>ap",

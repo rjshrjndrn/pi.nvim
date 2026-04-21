@@ -15,20 +15,30 @@ function M.ask(opts)
 		ctx = context.get_buffer_info()
 	end
 
-	vim.ui.input({ prompt = "Ask pi: " }, function(question)
-		if not question or question == "" then
-			return
-		end
-		local prompt = context.format_prompt(backend, ctx, question)
-		local cwd = context.resolve_cwd(ctx.file)
+	-- Use vim.fn.input() directly instead of vim.ui.input() so that
+	-- Neovim's native '@' (input) history is available.  Arrow-up / down
+	-- recalls previously typed queries, and the history persists across
+	-- sessions via shada.  vim.ui.input() is often overridden by plugins
+	-- (snacks.nvim, dressing.nvim) whose floating-window replacements
+	-- maintain their own in-memory history that may not behave the same.
+	local ok, question = pcall(vim.fn.input, { prompt = "Ask pi: ", cancelreturn = vim.NIL })
+	if not ok or question == vim.NIL or question == "" then
+		return
+	end
+	local prompt = context.format_prompt(backend, ctx, question)
+	local cwd = context.resolve_cwd(ctx.file)
 
-		local already_running = ui.open(prompt, backend, cwd)
-		-- If backend was already running, send as follow-up
-		if already_running then
+	-- Always send via ui.send() so the prompt flows through the TUI's
+	-- input field and appears in its command history (arrow-up recall).
+	-- For a fresh start the TUI needs time to initialize first.
+	local already_running = ui.open(nil, backend, cwd)
+	if already_running then
+		ui.send(prompt)
+	else
+		vim.defer_fn(function()
 			ui.send(prompt)
-		end
-		-- If fresh start, prompt was passed as CLI arg
-	end)
+		end, config.options.startup_delay)
+	end
 end
 
 function M.quick_action(action)
@@ -67,9 +77,13 @@ function M.quick_action(action)
 	end
 
 	local cwd = context.resolve_cwd(vim.api.nvim_buf_get_name(0))
-	local already_running = ui.open(prompt, backend, cwd)
+	local already_running = ui.open(nil, backend, cwd)
 	if already_running then
 		ui.send(prompt)
+	else
+		vim.defer_fn(function()
+			ui.send(prompt)
+		end, config.options.startup_delay)
 	end
 end
 

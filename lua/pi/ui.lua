@@ -69,9 +69,13 @@ function M.open(initial_prompt, backend, cwd)
 		return true -- already running
 	end
 
-	-- Build command via backend
+	-- Build command via backend – intentionally omit initial_prompt from the
+	-- CLI args so the TUI starts with an empty input field.  The caller sends
+	-- the prompt afterwards via M.send(), which makes the text flow through
+	-- the TUI's input widget and therefore appear in its command history
+	-- (arrow-up recall).
 	backend = backend or require("pi.config").get_backend()
-	local cmd = backend.build_cmd(backend.bin, backend.extra_args, initial_prompt)
+	local cmd = backend.build_cmd(backend.bin, backend.extra_args, nil)
 
 	-- Open split and spawn pi TUI
 	open_split(nil, cwd)

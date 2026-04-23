@@ -31,14 +31,8 @@ function M.ask(opts)
 	-- Always send via ui.send() so the prompt flows through the TUI's
 	-- input field and appears in its command history (arrow-up recall).
 	-- For a fresh start the TUI needs time to initialize first.
-	local already_running = ui.open(nil, backend, cwd)
-	if already_running then
-		ui.send(prompt)
-	else
-		vim.defer_fn(function()
-			ui.send(prompt)
-		end, config.options.startup_delay)
-	end
+	ui.open(nil, backend, cwd)
+	ui.send(prompt)
 	ui.focus()
 end
 
@@ -78,14 +72,8 @@ function M.quick_action(action)
 	end
 
 	local cwd = context.resolve_cwd(vim.api.nvim_buf_get_name(0))
-	local already_running = ui.open(nil, backend, cwd)
-	if already_running then
-		ui.send(prompt)
-	else
-		vim.defer_fn(function()
-			ui.send(prompt)
-		end, config.options.startup_delay)
-	end
+	ui.open(nil, backend, cwd)
+	ui.send(prompt)
 end
 
 function M.toggle()

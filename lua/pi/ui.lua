@@ -5,7 +5,54 @@ local term_buf = nil
 local term_win = nil
 local term_job = nil
 local is_maximized = false
+local ready = false
+local pending_send = nil
+local ready_timer = nil
 local augroup = vim.api.nvim_create_augroup("PiTerminal", { clear = true })
+
+--- Poll terminal buffer until TUI renders visible content, then flush pending send.
+--- termopen() routes PTY output to libvterm directly — on_stdout won't fire —
+--- so we check buffer lines instead.  Once non-empty lines appear, the TUI has
+--- rendered its first frame.  A short extra delay lets the input handler init.
+local function poll_until_ready()
+	if ready_timer then
+		ready_timer:stop()
+		ready_timer:close()
+		ready_timer = nil
+	end
+	local attempts = 0
+	ready_timer = vim.uv.new_timer()
+	ready_timer:start(1000, 1000, vim.schedule_wrap(function()
+		attempts = attempts + 1
+		-- Timeout after 10s
+		if attempts > 10 or not term_buf or not vim.api.nvim_buf_is_valid(term_buf) then
+			if ready_timer then
+				ready_timer:stop()
+				ready_timer:close()
+				ready_timer = nil
+			end
+			return
+		end
+		local lines = vim.api.nvim_buf_get_lines(term_buf, 0, 10, false)
+		for _, line in ipairs(lines) do
+			if line ~= "" then
+				ready_timer:stop()
+				ready_timer:close()
+				ready_timer = nil
+				-- Extra 1s delay for Bubble Tea input handler to finish init
+				vim.defer_fn(function()
+					ready = true
+					if pending_send then
+						local text = pending_send
+						pending_send = nil
+						M.send(text)
+					end
+				end, 1000)
+				return
+			end
+		end
+	end))
+end
 
 --- Join continuation lines caused by terminal hard-wrapping.
 --- Lines whose display width equals the terminal width are wraps, not real newlines.
@@ -79,6 +126,8 @@ function M.open(initial_prompt, backend, cwd)
 
 	-- Open split and spawn pi TUI
 	open_split(nil, cwd)
+	ready = false
+	pending_send = nil
 	term_job = vim.fn.termopen(cmd, {
 		cwd = cwd or vim.fn.getcwd(),
 		env = {
@@ -97,6 +146,13 @@ function M.open(initial_prompt, backend, cwd)
 		on_exit = function()
 			term_job = nil
 			term_buf = nil
+			ready = false
+			pending_send = nil
+			if ready_timer then
+				ready_timer:stop()
+				ready_timer:close()
+				ready_timer = nil
+			end
 		end,
 	})
 	term_buf = vim.api.nvim_get_current_buf()
@@ -118,27 +174,34 @@ function M.open(initial_prompt, backend, cwd)
 		end,
 	})
 
+	-- Start polling for TUI readiness
+	poll_until_ready()
+
 	-- Go back to code window
 	vim.cmd("wincmd p")
 	return false -- fresh start
 end
 
 function M.send(text)
-	if term_job then
-		-- Wrap in bracketed-paste markers so OpenCode's Bubble Tea input does not
-		-- treat individual characters as keystrokes.  Without this, the '@' in the
-		-- formatted prompt (e.g. "Refer @file lines N-M.") triggers OpenCode's
-		-- mention-autocomplete, which replaces the typed file path with whatever
-		-- agent name is highlighted in the dropdown (e.g. "@coder-v2").
-		-- Bubble Tea honours \x1b[200~ / \x1b[201~ and inserts the whole block as
-		-- literal text, bypassing all key-event callbacks.
-		--
-		-- We intentionally do NOT send \r (Enter) afterwards.  The prompt is
-		-- placed in the TUI's input field so the user can review/edit it and
-		-- submit manually.  This also ensures the text is recorded in the
-		-- TUI's command history.
-		vim.fn.chansend(term_job, "\x1b[200~" .. text .. "\x1b[201~")
+	if not term_job then return end
+	if not ready then
+		-- TUI not ready yet; queue and poll_until_ready() will flush it
+		pending_send = text
+		return
 	end
+	-- Wrap in bracketed-paste markers so OpenCode's Bubble Tea input does not
+	-- treat individual characters as keystrokes.  Without this, the '@' in the
+	-- formatted prompt (e.g. "Refer @file lines N-M.") triggers OpenCode's
+	-- mention-autocomplete, which replaces the typed file path with whatever
+	-- agent name is highlighted in the dropdown (e.g. "@coder-v2").
+	-- Bubble Tea honours \x1b[200~ / \x1b[201~ and inserts the whole block as
+	-- literal text, bypassing all key-event callbacks.
+	--
+	-- We intentionally do NOT send \r (Enter) afterwards.  The prompt is
+	-- placed in the TUI's input field so the user can review/edit it and
+	-- submit manually.  This also ensures the text is recorded in the
+	-- TUI's command history.
+	vim.fn.chansend(term_job, "\x1b[200~" .. text .. "\x1b[201~")
 end
 
 function M.focus()

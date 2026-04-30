@@ -26,14 +26,17 @@ function M.ask(opts)
 		return
 	end
 	local prompt = context.format_prompt(backend, ctx, question)
-	local cwd = context.resolve_cwd(ctx.file)
 
-	-- Always send via ui.send() so the prompt flows through the TUI's
-	-- input field and appears in its command history (arrow-up recall).
-	-- For a fresh start the TUI needs time to initialize first.
-	ui.open(nil, backend, cwd)
-	ui.send(prompt)
-	ui.focus()
+	-- Resolve git root asynchronously so a slow fs/network mount doesn't
+	-- block the main thread while the user waits for the window to open.
+	context.resolve_cwd_async(ctx.file, function(cwd)
+		-- Always send via ui.send() so the prompt flows through the TUI's
+		-- input field and appears in its command history (arrow-up recall).
+		-- For a fresh start the TUI needs time to initialize first.
+		ui.open(nil, backend, cwd)
+		ui.send(prompt)
+		ui.focus()
+	end)
 end
 
 function M.quick_action(action)
@@ -71,9 +74,10 @@ function M.quick_action(action)
 		backend = config.get_backend()
 	end
 
-	local cwd = context.resolve_cwd(vim.api.nvim_buf_get_name(0))
-	ui.open(nil, backend, cwd)
-	ui.send(prompt)
+	context.resolve_cwd_async(vim.api.nvim_buf_get_name(0), function(cwd)
+		ui.open(nil, backend, cwd)
+		ui.send(prompt)
+	end)
 end
 
 function M.toggle()

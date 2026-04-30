@@ -223,9 +223,11 @@ function M.toggle()
 	if term_win and vim.api.nvim_win_is_valid(term_win) then
 		M.close()
 	else
-		local cwd = require("pi.context").resolve_cwd(vim.api.nvim_buf_get_name(0))
-		M.open(nil, nil, cwd)
-		M.focus()
+		local ctx = require("pi.context")
+		ctx.resolve_cwd_async(vim.api.nvim_buf_get_name(0), function(cwd)
+			M.open(nil, nil, cwd)
+			M.focus()
+		end)
 	end
 end
 

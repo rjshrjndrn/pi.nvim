@@ -22,6 +22,7 @@ end
 
 --- Resolve the working directory for spawning the backend process.
 --- Walks up from the file's directory to find a git root; falls back to :h.
+--- SYNC version kept for backwards compat — prefer resolve_cwd_async.
 ---@param file string Absolute path to the file.
 ---@return string
 function M.resolve_cwd(file)
@@ -31,6 +32,27 @@ function M.resolve_cwd(file)
 		return vim.trim(result)
 	end
 	return dir
+end
+
+--- Async version of resolve_cwd. Uses vim.system() so the main thread is
+--- never blocked by the git subprocess.
+---@param file string Absolute path to the file.
+---@param callback fun(cwd: string)
+function M.resolve_cwd_async(file, callback)
+	local dir = vim.fn.fnamemodify(file, ":h")
+	vim.system(
+		{ "git", "-C", dir, "rev-parse", "--show-toplevel" },
+		{ text = true },
+		function(result)
+			vim.schedule(function()
+				if result.code == 0 then
+					callback(vim.trim(result.stdout))
+				else
+					callback(dir)
+				end
+			end)
+		end
+	)
 end
 
 function M.format_prompt(backend, ctx, question)

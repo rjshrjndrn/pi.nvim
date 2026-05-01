@@ -144,8 +144,12 @@ function M.open(initial_prompt, backend, cwd)
 			STY = "",
 		},
 		on_exit = function()
+			if term_buf and vim.api.nvim_buf_is_valid(term_buf) then
+				vim.b[term_buf].pi_terminal = false
+			end
 			term_job = nil
 			term_buf = nil
+			term_win = nil
 			ready = false
 			pending_send = nil
 			if ready_timer then
@@ -157,6 +161,7 @@ function M.open(initial_prompt, backend, cwd)
 	})
 	term_buf = vim.api.nvim_get_current_buf()
 	vim.bo[term_buf].buflisted = false
+	vim.b[term_buf].pi_terminal = true
 	vim.api.nvim_buf_set_name(term_buf, "pi")
 	vim.cmd("setlocal bufhidden=hide")
 
@@ -170,6 +175,16 @@ function M.open(initial_prompt, backend, cwd)
 		callback = function()
 			if vim.bo.buftype == "terminal" then
 				vim.cmd("startinsert")
+			end
+		end,
+	})
+
+	-- Track when term_win is closed externally (e.g. NeoTree layout changes)
+	vim.api.nvim_create_autocmd("WinClosed", {
+		group = augroup,
+		callback = function(ev)
+			if tonumber(ev.match) == term_win then
+				term_win = nil
 			end
 		end,
 	})
@@ -219,15 +234,44 @@ function M.close()
 	is_maximized = false
 end
 
+local function find_pi_buf()
+	-- Fast path: module-level var still valid
+	if term_buf and vim.api.nvim_buf_is_valid(term_buf) then
+		return term_buf
+	end
+	-- Fallback: scan all bufs by tag (handles module reload / stale var)
+	for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+		if vim.api.nvim_buf_is_valid(buf) and vim.b[buf].pi_terminal then
+			return buf
+		end
+	end
+end
+
 function M.toggle()
-	if term_win and vim.api.nvim_win_is_valid(term_win) then
-		M.close()
-	else
+	local buf = find_pi_buf()
+	if not buf then
+		-- No pi buf at all → fresh start
 		local ctx = require("pi.context")
 		ctx.resolve_cwd_async(vim.api.nvim_buf_get_name(0), function(cwd)
 			M.open(nil, nil, cwd)
 			M.focus()
 		end)
+		return
+	end
+
+	local wins = vim.fn.win_findbuf(buf)
+	if #wins > 0 then
+		-- Visible in one or more windows → close all
+		for _, win in ipairs(wins) do
+			pcall(vim.api.nvim_win_close, win, true)
+		end
+		term_win = nil
+		is_maximized = false
+	else
+		-- Hidden but job still running → re-show
+		open_split(buf, nil)
+		term_win = vim.api.nvim_get_current_win()
+		M.focus()
 	end
 end
 

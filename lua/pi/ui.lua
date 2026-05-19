@@ -128,7 +128,8 @@ function M.open(initial_prompt, backend, cwd)
 	open_split(nil, cwd)
 	ready = false
 	pending_send = nil
-	term_job = vim.fn.termopen(cmd, {
+	term_job = vim.fn.jobstart(cmd, {
+		term = true,
 		cwd = cwd or vim.fn.getcwd(),
 		env = {
 			-- OpenCode checks process.env.TMUX / process.env.STY to decide whether

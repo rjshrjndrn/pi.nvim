@@ -130,6 +130,21 @@ function M.open(initial_prompt, backend, cwd)
 	open_split(nil, cwd)
 	ready = false
 	pending_send = nil
+
+	-- Set scrollback BEFORE terminal_open() via TermOpen autocmd
+	-- to avoid allocate-then-realloc when setting it post-creation
+	local sb = config.options.split.scrollback
+	if sb and type(sb) == "number" then
+		sb = math.max(1, math.min(sb, 100000))
+		vim.api.nvim_create_autocmd("TermOpen", {
+			group = augroup,
+			once = true,
+			callback = function()
+				vim.bo.scrollback = sb
+			end,
+		})
+	end
+
 	term_job = vim.fn.jobstart(cmd, {
 		term = true,
 		cwd = cwd or vim.fn.getcwd(),

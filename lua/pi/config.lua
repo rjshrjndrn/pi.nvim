@@ -7,6 +7,7 @@ M.defaults = {
 	split = {
 		position = "right",
 		width = 0.35,
+		scrollback = nil, -- nil = neovim default (10000). Set lower to reduce memory/CPU on long sessions
 	},
 	-- Delay (ms) after spawning the TUI before sending the initial prompt
 	-- via the input field.  Increase if the TUI hasn't finished initializing

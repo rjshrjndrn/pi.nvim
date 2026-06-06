@@ -105,6 +105,8 @@ local function open_split(existing_buf, cwd)
 	vim.wo[term_win].number = false
 	vim.wo[term_win].relativenumber = false
 	vim.wo[term_win].signcolumn = "no"
+	vim.wo[term_win].foldmethod = "manual"
+	vim.wo[term_win].foldexpr = "0"
 end
 
 function M.open(initial_prompt, backend, cwd)

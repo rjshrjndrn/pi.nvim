@@ -1,6 +1,5 @@
 local M = {}
 local config = require("pi.config")
-local backends = require("pi.backends")
 local ui = require("pi.ui")
 local context = require("pi.context")
 local rpc = require("pi.rpc")
@@ -34,7 +33,7 @@ function M.ask(opts)
 		-- Always send via ui.send() so the prompt flows through the TUI's
 		-- input field and appears in its command history (arrow-up recall).
 		-- For a fresh start the TUI needs time to initialize first.
-		ui.open(nil, backend, cwd)
+		ui.open(nil, cwd)
 		ui.send(prompt)
 		ui.focus()
 	end)
@@ -67,16 +66,9 @@ function M.quick_action(action)
 		return
 	end
 
-	-- TUI flow via backend
-	local backend
-	if action.backend then
-		backend = backends.resolve(action.backend, action.backend_opts or {})
-	else
-		backend = config.get_backend()
-	end
-
+	-- TUI flow
 	context.resolve_cwd_async(vim.api.nvim_buf_get_name(0), function(cwd)
-		ui.open(nil, backend, cwd)
+		ui.open(nil, cwd)
 		ui.send(prompt)
 	end)
 end

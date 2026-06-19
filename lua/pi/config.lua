@@ -49,4 +49,12 @@ function M.get_backend()
 	return backends.resolve(M.options.backend, M.options.backend_opts)
 end
 
+--- Build the full launch command for the active backend.
+--- Single source of truth — every code path that spawns pi uses this.
+---@return string[] cmd
+function M.get_launch_cmd()
+	local backend = M.get_backend()
+	return backend.build_cmd(backend.bin, backend.extra_args, nil)
+end
+
 return M

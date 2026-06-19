@@ -109,7 +109,7 @@ local function open_split(existing_buf, cwd)
 	vim.wo[term_win].foldexpr = "0"
 end
 
-function M.open(initial_prompt, backend, cwd)
+function M.open(initial_prompt, cwd)
 	-- If already running, just show the window
 	if term_job and vim.fn.jobwait({ term_job }, 0)[1] == -1 then
 		if not term_win or not vim.api.nvim_win_is_valid(term_win) then
@@ -123,8 +123,7 @@ function M.open(initial_prompt, backend, cwd)
 	-- the prompt afterwards via M.send(), which makes the text flow through
 	-- the TUI's input widget and therefore appear in its command history
 	-- (arrow-up recall).
-	backend = backend or require("pi.config").get_backend()
-	local cmd = backend.build_cmd(backend.bin, backend.extra_args, nil)
+	local cmd = require("pi.config").get_launch_cmd()
 
 	-- Open split and spawn pi TUI
 	open_split(nil, cwd)
@@ -275,7 +274,7 @@ function M.toggle()
 		-- No pi buf at all → fresh start
 		local ctx = require("pi.context")
 		ctx.resolve_cwd_async(vim.api.nvim_buf_get_name(0), function(cwd)
-			M.open(nil, nil, cwd)
+			M.open(nil, cwd)
 			M.focus()
 		end)
 		return

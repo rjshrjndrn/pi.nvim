@@ -1,15 +1,4 @@
---- Manages the Neovim integration skill for pi agent.
 ---
---- Writes a skill file to the project's .pi/agent/skills/ directory
---- that teaches pi about available RPC commands when running inside Neovim.
-
-local M = {}
-
-local SKILL_DIR_NAME = "nvim-integration"
-local GLOBAL_SKILLS_DIR = vim.fn.expand("~/.pi/agent/skills/" .. SKILL_DIR_NAME)
-local SKILL_FILE = GLOBAL_SKILLS_DIR .. "/SKILL.md"
-
-local SKILL_CONTENT = [[---
 name: nvim-integration
 description: >
   Control parent Neovim when running inside a Neovim terminal.
@@ -89,30 +78,3 @@ nvim --server "$NVIM" --remote-expr "v:lua.PiRpc.editor_state()"
 - `buf_set_lines()` does NOT save to disk — user must `:w` explicitly
 - The `read` and `edit` tools still work on **files on disk** — use those for persistent changes
 - Use RPC for **interactive** workflows (preview, navigate, propose changes)
-]]
-
---- Install skill to ~/.pi/agent/skills/ so pi agent always knows about RPC.
---- Idempotent — only writes if content changed.
-function M.ensure()
-	-- Create directory
-	vim.fn.mkdir(GLOBAL_SKILLS_DIR, "p")
-
-	-- Check if content changed
-	local f = io.open(SKILL_FILE, "r")
-	if f then
-		local existing = f:read("*a")
-		f:close()
-		if existing == SKILL_CONTENT then
-			return -- already up to date
-		end
-	end
-
-	-- Write skill file
-	f = io.open(SKILL_FILE, "w")
-	if f then
-		f:write(SKILL_CONTENT)
-		f:close()
-	end
-end
-
-return M

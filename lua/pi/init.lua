@@ -4,7 +4,6 @@ local backends = require("pi.backends")
 local ui = require("pi.ui")
 local context = require("pi.context")
 local rpc = require("pi.rpc")
-local skill = require("pi.skill")
 
 function M.ask(opts)
 	opts = opts or {}
@@ -96,8 +95,17 @@ function M.setup(opts)
 	-- Register RPC handlers so pi agent can call back into this Neovim
 	rpc.register()
 
-	-- Install nvim-integration skill so pi knows about RPC commands
-	skill.ensure()
+	-- Inject bundled nvim-integration skill into pi's --skill flag.
+	-- Detect plugin root from this file's location on the runtimepath.
+	local plugin_root = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":h:h:h")
+	local skill_path = plugin_root .. "/skills/nvim-integration"
+	if vim.fn.isdirectory(skill_path) == 1 then
+		local opts_args = config.options.backend_opts or {}
+		local extra = opts_args.extra_args or {}
+		table.insert(extra, "--skill")
+		table.insert(extra, skill_path)
+		config.options.backend_opts = vim.tbl_extend("force", opts_args, { extra_args = extra })
+	end
 
 	vim.keymap.set("n", config.options.keymaps.ask, function()
 		M.ask()

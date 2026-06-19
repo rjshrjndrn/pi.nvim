@@ -3,6 +3,8 @@ local config = require("pi.config")
 local backends = require("pi.backends")
 local ui = require("pi.ui")
 local context = require("pi.context")
+local rpc = require("pi.rpc")
+local skill = require("pi.skill")
 
 function M.ask(opts)
 	opts = opts or {}
@@ -90,6 +92,12 @@ end
 
 function M.setup(opts)
 	config.setup(opts)
+
+	-- Register RPC handlers so pi agent can call back into this Neovim
+	rpc.register()
+
+	-- Install nvim-integration skill so pi knows about RPC commands
+	skill.ensure()
 
 	vim.keymap.set("n", config.options.keymaps.ask, function()
 		M.ask()

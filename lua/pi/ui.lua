@@ -160,6 +160,10 @@ function M.open(initial_prompt, backend, cwd)
 			-- OpenCode's native clipboard path (wl-copy / xclip / xsel) is unaffected.
 			TMUX = "",
 			STY = "",
+			-- Signal to pi agent that it's running inside Neovim.
+			-- $NVIM (socket path) is already set automatically by Neovim
+			-- for all terminal children. PI_NVIM is an extra hint.
+			PI_NVIM = "1",
 		},
 		on_exit = function()
 			if term_buf and vim.api.nvim_buf_is_valid(term_buf) then

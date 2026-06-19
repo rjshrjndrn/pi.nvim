@@ -27,19 +27,21 @@ You are running inside a Neovim terminal. The `$NVIM` env var points to the pare
 
 ## Available Commands
 
-All commands use this pattern:
+**Use `v:lua` syntax** (preferred — cleaner, no escaping issues):
 ```bash
-nvim --server "$NVIM" --remote-expr "luaeval('PiRpc.FUNCTION(ARGS)')"
+nvim --server "$NVIM" --remote-expr "v:lua.PiRpc.FUNCTION(ARGS)"
 ```
+
+**IMPORTANT**: Do NOT use `luaeval()` with semicolons — it only accepts a single expression.
 
 ### 1. Open file at line (in code window, not terminal)
 ```bash
-nvim --server "$NVIM" --remote-expr "luaeval('PiRpc.open_at(\"path/to/file.lua\", 42)')"
+nvim --server "$NVIM" --remote-expr "v:lua.PiRpc.open_at('path/to/file.lua', 42)"
 ```
 
 ### 2. Read buffer lines (includes unsaved edits!)
 ```bash
-nvim --server "$NVIM" --remote-expr "luaeval('PiRpc.buf_lines(\"path/to/file.lua\", 10, 25)')"
+nvim --server "$NVIM" --remote-expr "v:lua.PiRpc.buf_lines('path/to/file.lua', 10, 25)"
 ```
 - Returns actual buffer content, not disk content
 - Omit start/end to get all lines
@@ -47,7 +49,7 @@ nvim --server "$NVIM" --remote-expr "luaeval('PiRpc.buf_lines(\"path/to/file.lua
 
 ### 3. Write lines to buffer (no disk write, user can undo)
 ```bash
-nvim --server "$NVIM" --remote-expr "luaeval('PiRpc.buf_set_lines(\"path/to/file.lua\", 10, 15, {\"line1\", \"line2\"})')"
+nvim --server "$NVIM" --remote-expr "v:lua.PiRpc.buf_set_lines('path/to/file.lua', 10, 15, {'line1', 'line2'})"
 ```
 - Buffer must be open (use open_at first if needed)
 - Creates undo point — user can `u` to revert
@@ -55,20 +57,20 @@ nvim --server "$NVIM" --remote-expr "luaeval('PiRpc.buf_set_lines(\"path/to/file
 
 ### 4. Preview lines in floating window
 ```bash
-nvim --server "$NVIM" --remote-expr "luaeval('PiRpc.preview(\"path/to/file.lua\", 10, 25, \" Preview \")')"
+nvim --server "$NVIM" --remote-expr "v:lua.PiRpc.preview('path/to/file.lua', 10, 25, ' Preview ')"
 ```
 - Shows code in centered float with syntax highlighting
 - User closes with `q` or `Esc`
 
 ### 5. Show diff (current buffer vs proposed changes)
 ```bash
-nvim --server "$NVIM" --remote-expr "luaeval('PiRpc.show_diff(\"path/to/file.lua\", {\"new line 1\", \"new line 2\"})')"
+nvim --server "$NVIM" --remote-expr "v:lua.PiRpc.show_diff('path/to/file.lua', {'new line 1', 'new line 2'})"
 ```
 - Opens side-by-side diff in Neovim
 
 ### 6. Get editor state (current file, cursor, modified status)
 ```bash
-nvim --server "$NVIM" --remote-expr "luaeval('PiRpc.editor_state()')"
+nvim --server "$NVIM" --remote-expr "v:lua.PiRpc.editor_state()"
 ```
 - Returns: file, line, col, total_lines, modified, filetype
 
